@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
-import clientPromise from '@/lib/mongodb'
+import prisma from '@/lib/db'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const gallery = await db.collection('galleries').findOne({
-      _id: new ObjectId(params.id)
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
+    }
+
+    const gallery = await prisma.gallery.findUnique({
+      where: { id: numericId }
     })
-    
+
     if (!gallery) {
       return NextResponse.json({ error: 'Gallery not found' }, { status: 404 })
     }
-    
+
     return NextResponse.json(gallery)
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch gallery' }, { status: 500 })
@@ -26,46 +29,73 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const body = await request.json()
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const result = await db.collection('galleries').updateOne(
-      { _id: new ObjectId(params.id) },
-      { $set: body }
-    )
-    
-    if (result.matchedCount === 0) {
-      return NextResponse.json({ error: 'Gallery not found' }, { status: 404 })
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
-    
-    return NextResponse.json({ message: 'Gallery updated successfully' })
+
+    const formData = await request.formData();
+
+    const judul = formData.get('judul') as string;
+    const deskripsi = formData.get('deskripsi') as string;
+
+    let gambar = undefined;
+    const imageFile = formData.get('imageFile') as File | null;
+    if (imageFile && imageFile.size > 0) {
+      const { saveFile } = await import('@/lib/upload');
+      gambar = await saveFile(imageFile, 'galleries');
+    }
+    const imageUrl = formData.get('imageUrl') as string | null;
+    if (imageUrl) {
+      gambar = imageUrl;
+    }
+
+    const updateData: any = {
+      judul,
+      deskripsi
+    };
+
+    if (gambar) {
+      updateData.gambar = gambar;
+    }
+
+    const result = await prisma.gallery.update({
+      where: { id: numericId },
+      data: updateData
+    })
+
+    return NextResponse.json({ message: 'Gallery updated successfully', data: result })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update gallery' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to update gallery or gallery not found' },
+      { status: 500 }
+    )
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const result = await db.collection('galleries').deleteOne({
-      _id: new ObjectId(params.id)
-    })
-    
-    if (result.deletedCount === 0) {
-      return NextResponse.json({ error: 'Gallery not found' }, { status: 404 })
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
-    
-    return NextResponse.json({ message: 'Gallery deleted successfully' })
+
+    const result = await prisma.gallery.delete({
+      where: { id: numericId }
+    })
+
+    return NextResponse.json({ message: 'Gallery deleted successfully', data: result })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete gallery' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to delete gallery or gallery not found' }, { status: 500 })
   }
 }

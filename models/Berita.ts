@@ -1,13 +1,18 @@
-import { ObjectId } from 'mongodb'
-
-export interface Berita {
-  _id?: ObjectId
-  judul: string
-  isi: string
-  gambar: string
-  link: string
-  penulis: string
-  createdAt: Date
+export interface NewsCategory {
+    id: number;
+    nama: string;
+    createdAt?: string | Date;
 }
 
-export type BeritaInput = Omit<Berita, '_id' | 'createdAt'>
+export interface Berita {
+    id: number;
+    categoryId: number;
+    judul: string;
+    isi: string;
+    gambar?: string;
+    link: string;
+    penulis: string;
+    category?: NewsCategory;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+}

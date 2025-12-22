@@ -1,32 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
-import clientPromise from '@/lib/mongodb'
-import { GalleryInput } from '@/models/Gallery'
+import prisma from '@/lib/db'
 
 export async function GET() {
   try {
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    const galleries = await db.collection('galleries').find().toArray()
-    return NextResponse.json(galleries)
+    const galleries = await prisma.gallery.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    return NextResponse.json(galleries);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch galleries' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch galleries' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body: GalleryInput = await request.json()
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const gallery = {
-      ...body,
-      createdAt: new Date()
+    const formData = await request.formData();
+    const judul = formData.get('judul') as string;
+    const deskripsi = formData.get('deskripsi') as string;
+
+    let gambar = '';
+    const imageFile = formData.get('imageFile') as File | null;
+    const imageUrl = formData.get('imageUrl') as string | null;
+
+    if (imageFile && imageFile.size > 0) {
+      const { saveFile } = await import('@/lib/upload');
+      gambar = await saveFile(imageFile, 'galleries');
+    } else if (imageUrl) {
+      gambar = imageUrl;
     }
-    
-    const result = await db.collection('galleries').insertOne(gallery)
-    return NextResponse.json({ _id: result.insertedId, ...gallery })
+
+    const gallery = await prisma.gallery.create({
+      data: {
+        judul,
+        deskripsi,
+        gambar
+      }
+    });
+
+    return NextResponse.json(gallery);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create gallery' }, { status: 500 })
+    console.error('POST galleries error:', error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to create gallery' }, { status: 500 });
   }
 }

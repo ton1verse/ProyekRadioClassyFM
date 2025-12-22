@@ -1,9 +1,18 @@
 import './globals.css'
+import { Poppins } from 'next/font/google'
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-poppins',
+})
 
 export const metadata = {
   title: 'Classy FM',
   description: 'Dashboard for managing radio',
 }
+
+import { ToastProvider } from '@/context/ToastContext'
 
 export default function RootLayout({
   children,
@@ -12,7 +21,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gray-50">{children}</body>
+      <body className={`${poppins.variable} font-sans bg-gray-50`}>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   )
 }

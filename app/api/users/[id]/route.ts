@@ -1,71 +1,117 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
-import clientPromise from '@/lib/mongodb'
+import prisma from '@/lib/db'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const user = await db.collection('users').findOne({
-      _id: new ObjectId(params.id)
-    })
-    
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+      return NextResponse.json({ message: 'Invalid user id' }, { status: 400 });
     }
-    
-    return NextResponse.json(user)
+
+    const user = await prisma.user.findUnique({
+      where: { id: numericId }
+    });
+
+    if (!user) {
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(user);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 })
+    console.error('GET user by id error:', error);
+    return NextResponse.json(
+      { message: 'Failed to fetch user' },
+      { status: 500 }
+    );
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const body = await request.json()
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const result = await db.collection('users').updateOne(
-      { _id: new ObjectId(params.id) },
-      { $set: body }
-    )
-    
-    if (result.matchedCount === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+      return NextResponse.json({ message: 'Invalid user id' }, { status: 400 });
     }
-    
-    return NextResponse.json({ message: 'User updated successfully' })
+
+    const formData = await request.formData();
+
+    const nama = formData.get('nama') as string;
+    const username = formData.get('username') as string;
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    let foto = undefined;
+    const imageFile = formData.get('imageFile') as File | null;
+    if (imageFile && imageFile.size > 0) {
+      const { saveFile } = await import('@/lib/upload');
+      foto = await saveFile(imageFile, 'users');
+    }
+    const imageUrl = formData.get('imageUrl') as string | null;
+    if (imageUrl) {
+      foto = imageUrl;
+    }
+
+    const updateData: any = {
+      nama,
+      username,
+      email
+    };
+
+    if (password) {
+      updateData.password = password;
+    }
+
+    if (foto) {
+      updateData.foto = foto;
+    }
+
+    const user = await prisma.user.update({
+      where: { id: numericId },
+      data: updateData
+    });
+
+    return NextResponse.json({ message: 'User updated successfully', user });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 })
+    console.error('PUT user error:', error);
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : 'Failed to update user' },
+      { status: 500 }
+    );
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const result = await db.collection('users').deleteOne({
-      _id: new ObjectId(params.id)
-    })
-    
-    if (result.deletedCount === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+      return NextResponse.json({ message: 'Invalid user id' }, { status: 400 });
     }
-    
-    return NextResponse.json({ message: 'User deleted successfully' })
+
+    await prisma.user.delete({
+      where: { id: numericId }
+    });
+
+    return NextResponse.json({ message: 'User deleted successfully' });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 })
+    console.error('DELETE user error:', error);
+    return NextResponse.json(
+      { message: 'Failed to delete user' },
+      { status: 500 }
+    );
   }
 }

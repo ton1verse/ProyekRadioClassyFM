@@ -1,33 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
-import clientPromise from '@/lib/mongodb'
-import { EventInput } from '@/models/Event'
+import prisma from '@/lib/db'
 
 export async function GET() {
   try {
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    const events = await db.collection('events').find().toArray()
-    return NextResponse.json(events)
+    const events = await prisma.event.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    return NextResponse.json(events);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body: EventInput = await request.json()
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const event = {
-      ...body,
-      tanggal: new Date(body.tanggal),
-      createdAt: new Date()
+    const formData = await request.formData();
+    const judul = formData.get('judul') as string;
+    const lokasi = formData.get('lokasi') as string;
+    const tanggal = formData.get('tanggal') as string;
+    const deskripsi = formData.get('deskripsi') as string;
+
+    let poster = '';
+    const imageFile = formData.get('imageFile') as File | null;
+    const imageUrl = formData.get('imageUrl') as string | null;
+
+    if (imageFile && imageFile.size > 0) {
+      const { saveFile } = await import('@/lib/upload');
+      poster = await saveFile(imageFile, 'events');
+    } else if (imageUrl) {
+      poster = imageUrl;
     }
-    
-    const result = await db.collection('events').insertOne(event)
-    return NextResponse.json({ _id: result.insertedId, ...event })
+
+    const event = await prisma.event.create({
+      data: {
+        judul,
+        lokasi,
+        tanggal: new Date(tanggal),
+        deskripsi,
+        poster
+      }
+    });
+
+    return NextResponse.json(event);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create event' }, { status: 500 })
+    console.error('POST events error:', error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to create event' }, { status: 500 });
   }
 }

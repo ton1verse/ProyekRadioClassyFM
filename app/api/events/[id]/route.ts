@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
-import clientPromise from '@/lib/mongodb'
+import prisma from '@/lib/db'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const event = await db.collection('events').findOne({
-      _id: new ObjectId(params.id)
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
+    }
+
+    const event = await prisma.event.findUnique({
+      where: { id: numericId }
     })
-    
+
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
-    
+
     return NextResponse.json(event)
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch event' }, { status: 500 })
@@ -26,51 +29,80 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const body = await request.json()
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const updateData = {
-      ...body,
-      ...(body.tanggal && { tanggal: new Date(body.tanggal) })
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
-    
-    const result = await db.collection('events').updateOne(
-      { _id: new ObjectId(params.id) },
-      { $set: updateData }
-    )
-    
-    if (result.matchedCount === 0) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+
+    const formData = await request.formData();
+
+    const judul = formData.get('judul') as string;
+    const lokasi = formData.get('lokasi') as string;
+    const deskripsi = formData.get('deskripsi') as string;
+    const tanggalStr = formData.get('tanggal') as string;
+
+    let poster = undefined;
+    const imageFile = formData.get('imageFile') as File | null;
+    if (imageFile && imageFile.size > 0) {
+      const { saveFile } = await import('@/lib/upload');
+      poster = await saveFile(imageFile, 'events');
     }
-    
-    return NextResponse.json({ message: 'Event updated successfully' })
+    const imageUrl = formData.get('imageUrl') as string | null;
+    if (imageUrl) {
+      poster = imageUrl;
+    }
+
+    const updateData: any = {
+      judul,
+      lokasi,
+      deskripsi
+    };
+
+    if (tanggalStr) {
+      updateData.tanggal = new Date(tanggalStr);
+    }
+
+    if (poster) {
+      updateData.poster = poster;
+    }
+
+    const result = await prisma.event.update({
+      where: { id: numericId },
+      data: updateData
+    })
+
+    return NextResponse.json({ message: 'Event updated successfully', data: result })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update event' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to update event or event not found' },
+      { status: 500 }
+    )
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const result = await db.collection('events').deleteOne({
-      _id: new ObjectId(params.id)
-    })
-    
-    if (result.deletedCount === 0) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
-    
-    return NextResponse.json({ message: 'Event deleted successfully' })
+
+    const result = await prisma.event.delete({
+      where: { id: numericId }
+    })
+
+    return NextResponse.json({ message: 'Event deleted successfully', data: result })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete event' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to delete event or event not found' }, { status: 500 })
   }
 }

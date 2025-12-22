@@ -1,60 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server'
-import clientPromise from '@/lib/mongodb'
-import { ClassierInput } from '@/models/Classier'
+import prisma from '@/lib/db'
 
 export async function GET() {
   try {
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    // Pastikan collection ada
-    const collections = await db.listCollections().toArray()
-    const classiersCollection = collections.find(col => col.name === 'classiers')
-    
-    if (!classiersCollection) {
-      // Jika collection belum ada, buat collection kosong
-      await db.createCollection('classiers')
-      return NextResponse.json([])
-    }
-    
-    const classiers = await db.collection('classiers').find().toArray()
-    
-    // Convert ObjectId ke string untuk serialization
-    const serializedClassiers = classiers.map(classier => ({
-      ...classier,
-      _id: classier._id.toString(),
-      createdAt: classier.createdAt.toISOString()
-    }))
-    
-    return NextResponse.json(serializedClassiers)
-  } catch (error) {
-    console.error('Error fetching classiers:', error)
-    return NextResponse.json({ error: 'Failed to fetch classiers' }, { status: 500 })
+    const classiers = await prisma.classier.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    return NextResponse.json(classiers);
+  } catch (error: any) {
+    console.error('❌ Error in GET /api/classiers:', error);
+    return NextResponse.json([]);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body: ClassierInput = await request.json()
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const classier = {
-      ...body,
-      createdAt: new Date()
+    const formData = await request.formData();
+    const nama = formData.get('nama') as string;
+    const deskripsi = formData.get('deskripsi') as string;
+    const status = formData.get('status') as string || 'active';
+    const honor_per_jam = Number(formData.get('honor_per_jam')) || 0;
+
+    let foto = '';
+    const imageFile = formData.get('imageFile') as File | null;
+    const imageUrl = formData.get('imageUrl') as string | null;
+
+    if (imageFile && imageFile.size > 0) {
+      const { saveFile } = await import('@/lib/upload');
+      foto = await saveFile(imageFile, 'classiers');
+    } else if (imageUrl) {
+      foto = imageUrl;
     }
-    
-    const result = await db.collection('classiers').insertOne(classier)
-    
-    const insertedClassier = {
-      _id: result.insertedId.toString(),
-      ...classier,
-      createdAt: classier.createdAt.toISOString()
+
+    if (!nama || !deskripsi) {
+      return NextResponse.json({
+        error: 'Missing required fields: nama, deskripsi'
+      }, { status: 400 });
     }
-    
-    return NextResponse.json(insertedClassier)
-  } catch (error) {
-    console.error('Error creating classier:', error)
-    return NextResponse.json({ error: 'Failed to create classier' }, { status: 500 })
+
+    const newClassier = await prisma.classier.create({
+      data: {
+        nama,
+        deskripsi,
+        foto,
+        status,
+        honor_per_jam
+      }
+    });
+
+    return NextResponse.json(newClassier, { status: 201 });
+  } catch (error: any) {
+    console.error('❌ Error in POST /api/classiers:', error);
+    return NextResponse.json({
+      error: 'Failed to create classier',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }

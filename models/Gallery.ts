@@ -1,11 +1,8 @@
-import { ObjectId } from 'mongodb'
-
 export interface Gallery {
-  _id?: ObjectId
-  judul: string
-  deskripsi: string
-  gambar: string
-  createdAt: Date
+    id: number;
+    judul: string;
+    deskripsi: string;
+    gambar?: string;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
 }
-
-export type GalleryInput = Omit<Gallery, '_id' | 'createdAt'>

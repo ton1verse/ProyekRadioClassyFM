@@ -1,0 +1,164 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  nama      String
+  username  String   @unique
+  email     String   @unique
+  password  String
+  foto      String?
+  createdAt DateTime @default(now())
+
+  @@map("users")
+}
+
+model Classier {
+  id            Int      @id @default(autoincrement())
+  nama          String
+  deskripsi     String   @db.Text
+  foto          String?
+  status        String   @default("active")
+  honor_per_jam Float
+  createdAt     DateTime @default(now())
+  
+  programs      Program[]
+  podcasts      Podcast[]
+
+  @@map("classiers")
+}
+
+model Program {
+  id           Int      @id @default(autoincrement())
+  classierId   Int      @map("classier_id")
+  nama_program String
+  deskripsi    String   @db.Text
+  jadwal       DateTime
+  poster       String
+  durasi       Int
+  createdAt    DateTime @default(now())
+
+  classier     Classier @relation(fields: [classierId], references: [id])
+
+  @@map("programs")
+}
+
+model PodcastCategory {
+  id        Int       @id @default(autoincrement())
+  nama      String    @unique
+  createdAt DateTime  @default(now())
+  podcasts  Podcast[]
+
+  @@map("podcast_categories")
+}
+
+model Podcast {
+  id          Int      @id @default(autoincrement())
+  classierId  Int      @map("classier_id")
+  categoryId  Int?      @map("category_id")
+  category    PodcastCategory? @relation(fields: [categoryId], references: [id])
+  judul       String
+  deskripsi   String   @db.Text
+  poster      String
+  link        String   @db.Text
+  durasi      Int
+  createdAt   DateTime @default(now())
+
+  classier    Classier        @relation(fields: [classierId], references: [id])
+  category    PodcastCategory @relation(fields: [categoryId], references: [id])
+
+  @@map("podcasts")
+}
+
+model Musik {
+  id        Int      @id @default(autoincrement())
+  judul     String
+  penyanyi  String
+  foto      String
+  deskripsi String   @db.Text
+  lirik     String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@map("musiks")
+}
+
+model NewsCategory {
+  id        Int      @id @default(autoincrement())
+  nama      String   @unique
+  createdAt DateTime @default(now())
+  beritas   Berita[]
+
+  @@map("news_categories")
+}
+
+model Berita {
+  id          Int      @id @default(autoincrement())
+  categoryId  Int?      @map("category_id")
+  category    NewsCategory? @relation(fields: [categoryId], references: [id])
+  judul       String
+  isi         String   @db.Text
+  gambar      String
+  link        String
+  penulis     String
+  createdAt   DateTime @default(now())
+
+  category    NewsCategory @relation(fields: [categoryId], references: [id])
+
+  @@map("beritas")
+}
+
+model Event {
+  id        Int      @id @default(autoincrement())
+  judul     String
+  lokasi    String
+  tanggal   DateTime
+  deskripsi String   @db.Text
+  poster    String
+  createdAt DateTime @default(now())
+
+  @@map("events")
+}
+
+model Gallery {
+  id        Int      @id @default(autoincrement())
+  judul     String
+  deskripsi String   @db.Text
+  gambar    String
+  createdAt DateTime @default(now())
+
+  @@map("galleries")
+}
+
+model Song {
+  id        Int      @id @default(autoincrement())
+  title     String
+  artist    String
+  album     String
+  duration  String
+  genre     String
+  fileUrl   String?
+  createdAt DateTime @default(now())
+
+  @@map("songs")
+}
+
+model RadioStation {
+  id        Int      @id @default(autoincrement())
+  name      String
+  frequency String
+  genre     String
+  status    String   @default("online")
+  listeners Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("radiostations")
+}

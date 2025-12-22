@@ -1,49 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
-import clientPromise from '@/lib/mongodb'
+import prisma from '@/lib/db'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const body = await request.json()
-    const client = await clientPromise
-    const db = client.db('radiostream')
-    
-    const result = await db.collection('radiostations').updateOne(
-      { _id: new ObjectId(params.id) },
-      { $set: body }
-    )
-    
-    if (result.matchedCount === 0) {
-      return NextResponse.json({ error: 'Station not found' }, { status: 404 })
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
-    
-    return NextResponse.json({ message: 'Station updated' })
+
+    const body = await request.json()
+
+    // Remove id fields from body if present to avoid prisma error
+    if (body.id) delete body.id
+    if (body._id) delete body._id
+
+    const result = await prisma.radioStation.update({
+      where: { id: numericId },
+      data: body
+    })
+
+    return NextResponse.json({ message: 'Station updated', data: result })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update station' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to update station or station not found' }, { status: 500 })
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const client = await clientPromise
-    const db = client.db('radiostream')
-    
-    const result = await db.collection('radiostations').deleteOne({
-      _id: new ObjectId(params.id)
-    })
-    
-    if (result.deletedCount === 0) {
-      return NextResponse.json({ error: 'Station not found' }, { status: 404 })
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
-    
-    return NextResponse.json({ message: 'Station deleted' })
+
+    const result = await prisma.radioStation.delete({
+      where: { id: numericId }
+    })
+
+    return NextResponse.json({ message: 'Station deleted', data: result })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete station' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to delete station or station not found' }, { status: 500 })
   }
 }

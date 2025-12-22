@@ -1,97 +1,106 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
-import clientPromise from '@/lib/mongodb'
+import prisma from '@/lib/db'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    // Validasi ObjectId
-    if (!ObjectId.isValid(params.id)) {
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
-    
-    const classier = await db.collection('classiers').findOne({
-      _id: new ObjectId(params.id)
+
+    const classier = await prisma.classier.findUnique({
+      where: { id: numericId },
+      include: { programs: true, podcasts: true }
     })
-    
+
     if (!classier) {
       return NextResponse.json({ error: 'Classier not found' }, { status: 404 })
     }
-    
-    // Convert ObjectId ke string
-    const serializedClassier = {
-      ...classier,
-      _id: classier._id.toString(),
-      createdAt: classier.createdAt.toISOString()
-    }
-    
-    return NextResponse.json(serializedClassier)
+
+    return NextResponse.json(classier)
   } catch (error) {
-    console.error('Error fetching classier:', error)
     return NextResponse.json({ error: 'Failed to fetch classier' }, { status: 500 })
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const body = await request.json()
-    
-    // Validasi ObjectId
-    if (!ObjectId.isValid(params.id)) {
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
-    
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const result = await db.collection('classiers').updateOne(
-      { _id: new ObjectId(params.id) },
-      { $set: { ...body, updatedAt: new Date() } }
-    )
-    
-    if (result.matchedCount === 0) {
-      return NextResponse.json({ error: 'Classier not found' }, { status: 404 })
+
+    const formData = await request.formData();
+
+    const nama = formData.get('nama') as string;
+    const deskripsi = formData.get('deskripsi') as string;
+    const status = formData.get('status') as string;
+    const honor_per_jam = Number(formData.get('honor_per_jam')) || 0;
+
+    let foto = undefined;
+    const imageFile = formData.get('imageFile') as File | null;
+    if (imageFile && imageFile.size > 0) {
+      const { saveFile } = await import('@/lib/upload');
+      foto = await saveFile(imageFile, 'classiers');
     }
-    
-    return NextResponse.json({ message: 'Classier updated successfully' })
+    const imageUrl = formData.get('imageUrl') as string | null;
+    if (imageUrl) {
+      foto = imageUrl;
+    }
+
+    const updateData: any = {
+      nama,
+      deskripsi,
+      status,
+      honor_per_jam
+    };
+
+    if (foto) {
+      updateData.foto = foto;
+    }
+
+    const result = await prisma.classier.update({
+      where: { id: numericId },
+      data: updateData
+    })
+
+    return NextResponse.json({ message: 'Classier updated successfully', data: result })
   } catch (error) {
-    console.error('Error updating classier:', error)
-    return NextResponse.json({ error: 'Failed to update classier' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to update classier or classier not found' },
+      { status: 500 }
+    )
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Validasi ObjectId
-    if (!ObjectId.isValid(params.id)) {
+    const { id } = await params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
-    
-    const client = await clientPromise
-    const db = client.db('radio_streaming')
-    
-    const result = await db.collection('classiers').deleteOne({
-      _id: new ObjectId(params.id)
+
+    const result = await prisma.classier.delete({
+      where: { id: numericId }
     })
-    
-    if (result.deletedCount === 0) {
-      return NextResponse.json({ error: 'Classier not found' }, { status: 404 })
-    }
-    
-    return NextResponse.json({ message: 'Classier deleted successfully' })
+
+    return NextResponse.json({ message: 'Classier deleted successfully', data: result })
   } catch (error) {
-    console.error('Error deleting classier:', error)
-    return NextResponse.json({ error: 'Failed to delete classier' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to delete classier or classier not found' }, { status: 500 })
   }
 }

@@ -1,14 +1,22 @@
-import { ObjectId } from 'mongodb'
+import { Classier } from './Classier';
 
-export interface Podcast {
-  _id?: ObjectId
-  classier_id: ObjectId
-  judul: string
-  deskripsi: string
-  poster: string
-  link: string
-  durasi: number // dalam menit
-  createdAt: Date
+export interface PodcastCategory {
+    id: number;
+    nama: string;
+    createdAt?: string | Date;
 }
 
-export type PodcastInput = Omit<Podcast, '_id' | 'createdAt'>
+export interface Podcast {
+    id: number;
+    classierId: number;
+    categoryId: number;
+    judul: string;
+    deskripsi: string;
+    poster?: string;
+    link: string;
+    durasi: number;
+    classier?: Classier;
+    category?: PodcastCategory;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+}

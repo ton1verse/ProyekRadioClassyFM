@@ -1,37 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
-import clientPromise from '@/lib/mongodb'
-import { RadioStation, RadioStationInput } from '@/models/RadioStation'
+import prisma from '@/lib/db'
 
 export async function GET() {
   try {
-    const client = await clientPromise
-    const db = client.db('radiostream')
-    const stations = await db.collection('radiostations').find().toArray()
-    
-    return NextResponse.json(stations)
+    const stations = await prisma.radioStation.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    return NextResponse.json(stations);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch stations' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch stations' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body: RadioStationInput = await request.json()
-    const client = await clientPromise
-    const db = client.db('radiostream')
-    
-    const station = {
-      ...body,
-      createdAt: new Date()
-    }
-    
-    const result = await db.collection('radiostations').insertOne(station)
-    
-    return NextResponse.json({ 
-      _id: result.insertedId,
-      ...station 
-    })
+    const body = await request.json();
+
+    const station = await prisma.radioStation.create({
+      data: {
+        name: body.name,
+        frequency: body.frequency,
+        genre: body.genre,
+        status: body.status || 'online',
+        listeners: body.listeners || 0
+      }
+    });
+
+    return NextResponse.json(station);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create station' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create station' }, { status: 500 });
   }
 }

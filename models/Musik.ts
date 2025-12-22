@@ -1,13 +1,10 @@
-import { ObjectId } from 'mongodb'
-
 export interface Musik {
-  _id?: ObjectId
-  judul: string
-  penyanyi: string
-  foto: string
-  deskripsi: string
-  lirik: string
-  createdAt: Date
+    id: number;
+    judul: string;
+    penyanyi: string;
+    foto?: string;
+    deskripsi: string;
+    lirik: string;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
 }
-
-export type MusikInput = Omit<Musik, '_id' | 'createdAt'>
