@@ -45,7 +45,6 @@ export async function PUT(
     const isi = formData.get('isi') as string;
     const link = formData.get('link') as string;
     const penulis = formData.get('penulis') as string;
-    // Accept both camelCase and snake_case
     const categoryIdStr = formData.get('categoryId') as string || formData.get('category_id') as string;
 
     let gambar = undefined;
@@ -59,11 +58,22 @@ export async function PUT(
       gambar = imageUrl;
     }
 
+    const tanggalStr = formData.get('tanggal') as string;
+
+    let tanggal: Date | undefined;
+    if (tanggalStr) {
+      const parsed = new Date(tanggalStr);
+      if (!isNaN(parsed.getTime())) {
+        tanggal = parsed;
+      }
+    }
+
     const updateData: any = {
       judul,
       isi,
       link,
-      penulis
+      penulis,
+      tanggal
     };
 
     if (gambar) {
@@ -84,8 +94,9 @@ export async function PUT(
 
     return NextResponse.json({ message: 'Berita updated successfully', berita });
   } catch (error) {
+    console.error('Error updating berita:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update berita' },
+      { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

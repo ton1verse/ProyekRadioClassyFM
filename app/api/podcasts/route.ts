@@ -4,7 +4,13 @@ import prisma from '@/lib/db'
 export async function GET() {
   try {
     const podcasts = await prisma.podcast.findMany({
-      include: { classier: true, category: true },
+      include: {
+        classier: true,
+        category: true,
+        _count: {
+          select: { listens: true }
+        }
+      },
       orderBy: { createdAt: 'desc' }
     });
     return NextResponse.json(podcasts);
@@ -23,7 +29,9 @@ export async function POST(request: NextRequest) {
     const deskripsi = formData.get('deskripsi') as string;
     const link = formData.get('link') as string;
     const durasi = Number(formData.get('durasi')) || 0;
-    // Accept both camelCase and snake_case from frontend
+    const tanggalStr = formData.get('tanggal') as string;
+    const tanggal = tanggalStr ? new Date(tanggalStr) : new Date();
+
     const classierIdStr = formData.get('classierId') as string || formData.get('classier_id') as string;
     const categoryIdStr = formData.get('categoryId') as string || formData.get('category_id') as string;
 
@@ -66,6 +74,7 @@ export async function POST(request: NextRequest) {
         poster,
         link,
         durasi,
+        tanggal,
         classierId,
         categoryId
       }

@@ -4,7 +4,8 @@ import prisma from '@/lib/db'
 export async function GET() {
   try {
     const events = await prisma.event.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: { category: true }
     });
     return NextResponse.json(events);
   } catch (error) {
@@ -31,13 +32,16 @@ export async function POST(request: NextRequest) {
       poster = imageUrl;
     }
 
+    const categoryId = formData.get('categoryId') as string || formData.get('category_id') as string;
+
     const event = await prisma.event.create({
       data: {
         judul,
         lokasi,
         tanggal: new Date(tanggal),
         deskripsi,
-        poster
+        poster,
+        categoryId: categoryId ? parseInt(categoryId, 10) : undefined
       }
     });
 

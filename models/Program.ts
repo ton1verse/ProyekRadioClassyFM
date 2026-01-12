@@ -5,7 +5,7 @@ export interface Program {
     classierId: number;
     nama_program: string;
     deskripsi: string;
-    jadwal: string | Date;
+    jadwal: string;
     poster?: string;
     durasi: number;
     classier?: Classier;

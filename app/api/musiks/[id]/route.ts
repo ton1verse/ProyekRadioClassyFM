@@ -45,6 +45,12 @@ export async function PUT(
     const penyanyi = formData.get('penyanyi') as string;
     const deskripsi = formData.get('deskripsi') as string;
     const lirik = formData.get('lirik') as string;
+    const link = formData.get('link') as string;
+    let peringkat = formData.get('peringkat') ? parseInt(formData.get('peringkat') as string) : null;
+    if (typeof peringkat === 'number' && isNaN(peringkat)) {
+      peringkat = null;
+    }
+    const trend = (formData.get('trend') as string) || 'same';
 
     let foto = undefined;
     const imageFile = formData.get('imageFile') as File | null;
@@ -61,12 +67,17 @@ export async function PUT(
       judul,
       penyanyi,
       deskripsi,
-      lirik
+      lirik,
+      peringkat,
+      trend,
+      link
     };
 
     if (foto) {
       updateData.foto = foto;
     }
+
+    console.log('Update Data:', updateData);
 
     const result = await prisma.musik.update({
       where: { id: numericId },
@@ -75,6 +86,7 @@ export async function PUT(
 
     return NextResponse.json({ message: 'Musik updated successfully', data: result })
   } catch (error) {
+    console.error('Update Error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to update musik or musik not found' },
       { status: 500 }

@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback } fr
 import Toast, { ToastType } from '@/components/Toast';
 
 interface ToastContextType {
-    idx: number; // to force re-render if needed, mostly internal
+    idx: number;
     showToast: (message: string, type: ToastType) => void;
 }
 

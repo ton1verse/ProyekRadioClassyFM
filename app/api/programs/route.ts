@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const programs = await prisma.program.findMany({
@@ -21,7 +23,6 @@ export async function POST(request: NextRequest) {
     const deskripsi = formData.get('deskripsi') as string;
     const jadwal = formData.get('jadwal') as string;
     const durasi = Number(formData.get('durasi')) || 0;
-    // Accept both classierId and classier_id from frontend
     const classierIdStr = formData.get('classierId') as string || formData.get('classier_id') as string;
 
     let poster = '';
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
       data: {
         nama_program,
         deskripsi,
-        jadwal: new Date(jadwal),
+        jadwal,
         poster,
         durasi,
         classierId

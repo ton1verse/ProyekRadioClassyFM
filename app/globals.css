@@ -19,3 +19,50 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+/* Quill Editor Customizations for Captions */
+.ql-align-center {
+  text-align: center;
+}
+
+.ql-align-right {
+  text-align: right;
+}
+
+.ql-align-justify {
+  text-align: justify;
+}
+
+.ql-size-small {
+  font-size: 0.75rem;
+  /* Small text for captions */
+}
+
+.ql-size-large {
+  font-size: 1.5rem;
+}
+
+.ql-size-huge {
+  font-size: 2.5rem;
+}
+
+/* Ensure editor has explicit height if missing */
+.quill {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Auto-style standalone italics as captions */
+.prose p>em:only-child {
+  display: block;
+  text-align: center;
+  font-size: 0.875rem;
+  /* text-sm */
+  color: #6b7280;
+  /* text-gray-500 */
+  margin-top: -1rem;
+  /* Pull closer to image if possible, though margins vary */
+  margin-bottom: 2rem;
+  font-style: italic;
+  width: 100%;
+}

@@ -45,7 +45,8 @@ export async function PUT(
     const deskripsi = formData.get('deskripsi') as string;
     const link = formData.get('link') as string;
     const durasi = Number(formData.get('durasi')) || 0;
-    // Accept both camelCase and snake_case
+    const tanggalStr = formData.get('tanggal') as string;
+
     const classierIdStr = formData.get('classierId') as string || formData.get('classier_id') as string;
     const categoryIdStr = formData.get('categoryId') as string || formData.get('category_id') as string;
 
@@ -66,6 +67,10 @@ export async function PUT(
       link,
       durasi,
     };
+
+    if (tanggalStr) {
+      updateData.tanggal = new Date(tanggalStr);
+    }
 
     if (classierIdStr) {
       const classierId = parseInt(classierIdStr, 10);
@@ -122,12 +127,33 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
     }
 
+    const podcast = await prisma.podcast.findUnique({
+      where: { id: numericId }
+    })
+
+    if (!podcast) {
+      return NextResponse.json({ error: 'Podcast not found' }, { status: 404 })
+    }
+
     const result = await prisma.podcast.delete({
       where: { id: numericId }
     })
 
+    if (podcast.categoryId) {
+      const remainingPodcasts = await prisma.podcast.count({
+        where: { categoryId: podcast.categoryId }
+      })
+
+      if (remainingPodcasts === 0) {
+        await prisma.podcastCategory.delete({
+          where: { id: podcast.categoryId }
+        })
+      }
+    }
+
     return NextResponse.json({ message: 'Podcast deleted successfully', data: result })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete podcast or podcast not found' }, { status: 500 })
+    console.error("Delete Error:", error);
+    return NextResponse.json({ error: 'Failed to delete podcast' }, { status: 500 })
   }
 }

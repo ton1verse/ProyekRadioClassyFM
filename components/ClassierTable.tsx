@@ -2,20 +2,31 @@
 
 import { useState, useEffect } from 'react';
 import { Classier } from '@/models/Classier';
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Eye, Edit, Trash2, ChevronLeft, ChevronRight, Printer, FileText } from 'lucide-react';
 import DeleteModal from './DeleteModal';
 import { useToast } from '@/context/ToastContext';
 
 export default function ClassierTable() {
+  const router = useRouter();
   const [classiers, setClassiers] = useState<Classier[]>([]);
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Modal States
+  const [reportMonth, setReportMonth] = useState(new Date().getMonth());
+  const [reportYear, setReportYear] = useState(new Date().getFullYear());
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  // Selection States
   const [editingClassier, setEditingClassier] = useState<Classier | null>(null);
   const [classierToDelete, setClassierToDelete] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -23,18 +34,21 @@ export default function ClassierTable() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     nama: '',
-    deskripsi: '',
+    motto: '',
     foto: '',
     status: 'active' as 'active' | 'inactive',
-    honor_per_jam: 0
+    honor_per_jam: 0,
+    instagram: '',
+    facebook: '',
+    twitter: ''
   });
 
   const [imageMode, setImageMode] = useState<'url' | 'file'>('url');
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  // Fetch data dari MongoDB
   useEffect(() => {
     fetchClassiers();
   }, []);
@@ -43,12 +57,9 @@ export default function ClassierTable() {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching classiers from API...');
 
       const response = await fetch('/api/classiers');
       const data = await response.json();
-
-      console.log('API Response:', data);
 
       if (!response.ok) {
         throw new Error(data.error || `HTTP ${response.status}: Failed to fetch classiers`);
@@ -58,14 +69,11 @@ export default function ClassierTable() {
 
     } catch (error) {
       console.error('Error fetching classiers:', error);
-
       if (error instanceof Error) {
         setError(`Failed to load classiers: ${error.message}`);
       } else {
         setError('Failed to load classiers.');
       }
-
-      // Set empty array jika error
       setClassiers([]);
     } finally {
       setLoading(false);
@@ -79,12 +87,10 @@ export default function ClassierTable() {
     try {
       setError(null);
 
-      // Validasi form
       if (!formData.nama.trim()) {
         throw new Error('Nama is required');
       }
-      if (!formData.deskripsi.trim()) {
-        throw new Error('Deskripsi is required');
+      if (!formData.motto.trim()) {
       }
       if (formData.honor_per_jam < 0) {
         throw new Error('Honor per jam must be positive');
@@ -97,9 +103,12 @@ export default function ClassierTable() {
 
       const data = new FormData();
       data.append('nama', formData.nama);
-      data.append('deskripsi', formData.deskripsi);
+      data.append('motto', formData.motto);
       data.append('status', formData.status);
       data.append('honor_per_jam', formData.honor_per_jam.toString());
+      data.append('instagram', formData.instagram);
+      data.append('facebook', formData.facebook);
+      data.append('twitter', formData.twitter);
 
       if (imageMode === 'url') {
         data.append('imageUrl', formData.foto);
@@ -135,20 +144,22 @@ export default function ClassierTable() {
       }
     } catch (error) {
       console.error('Error saving classier:', error);
-      showToast('Error saving classier: Check console for details.', 'error');
+      showToast(error instanceof Error ? error.message : 'Error saving classier', 'error');
     }
   };
 
   const handleEdit = (classier: Classier) => {
-    console.log('Editing classier:', classier);
     setEditingClassier(classier);
     setIsViewMode(false);
     setFormData({
       nama: classier.nama,
-      deskripsi: classier.deskripsi,
+      motto: classier.motto || classier.deskripsi || '',
       foto: classier.foto || '',
       status: classier.status,
-      honor_per_jam: classier.honor_per_jam
+      honor_per_jam: classier.honor_per_jam,
+      instagram: classier.instagram || '',
+      facebook: classier.facebook || '',
+      twitter: classier.twitter || ''
     });
     setImageMode('url');
     setImageFile(null);
@@ -160,10 +171,13 @@ export default function ClassierTable() {
     setIsViewMode(true);
     setFormData({
       nama: classier.nama,
-      deskripsi: classier.deskripsi,
+      motto: classier.motto || classier.deskripsi || '',
       foto: classier.foto || '',
       status: classier.status,
-      honor_per_jam: classier.honor_per_jam
+      honor_per_jam: classier.honor_per_jam,
+      instagram: classier.instagram || '',
+      facebook: classier.facebook || '',
+      twitter: classier.twitter || ''
     });
     setIsModalOpen(true);
   };
@@ -188,7 +202,6 @@ export default function ClassierTable() {
         throw new Error(responseData.error || `HTTP ${response.status}: Failed to delete classier`);
       }
 
-      // Refresh data dari server
       await fetchClassiers();
       setIsDeleteModalOpen(false);
       setClassierToDelete(null);
@@ -206,19 +219,40 @@ export default function ClassierTable() {
     setIsViewMode(false);
     setFormData({
       nama: '',
-      deskripsi: '',
+      motto: '',
       foto: '',
       status: 'active',
-      honor_per_jam: 0
+      honor_per_jam: 0,
+      instagram: '',
+      facebook: '',
+      twitter: ''
     });
     setImageMode('url');
     setImageFile(null);
   };
 
+  const handlePrintAll = () => {
+    router.push(`/dashboard/laporan-honor?month=${reportMonth}&year=${reportYear}`);
+  };
+
+  const handlePrintSlip = (classierId: number) => {
+    router.push(`/dashboard/laporan-honor?month=${reportMonth}&year=${reportYear}&classierId=${classierId}`);
+  };
+
   const filteredClassiers = classiers.filter(classier =>
     classier.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    classier.deskripsi.toLowerCase().includes(searchTerm.toLowerCase())
+    (classier.motto || classier.deskripsi || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredClassiers.length / itemsPerPage);
+  const currentItems = filteredClassiers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const getClassierId = (classier: Classier): number => {
     return classier.id;
@@ -239,70 +273,67 @@ export default function ClassierTable() {
 
   return (
     <div className="p-6">
-      {/* Error Message */}
       {error && (
         <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
           <div className="flex items-center">
             <span className="mr-2">Alert: </span>
             <span>{error}</span>
-            <button
-              onClick={() => setError(null)}
-              className="ml-auto text-red-700 hover:text-red-900"
-            >
-              Close
-            </button>
           </div>
         </div>
       )}
 
-      {/* Success Message */}
-      {!error && classiers.length === 0 && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 text-blue-700 rounded">
-          <div className="flex items-center">
-            <span className="mr-2"></span>
-            <span>No classiers found. Add your first classier to get started!</span>
-          </div>
-        </div>
-      )}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <input
+            type="text"
+            placeholder="Cari classier..."
+            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
 
-      <div className="flex justify-between items-center mb-4">
-        <input
-          type="text"
-          placeholder="Search classiers by name or description..."
-          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-80"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <div className="flex items-center space-x-3">
+
+        </div>
+
+        <div className="flex items-center space-x-3 w-full md:w-auto justify-end">
+          <button
+            onClick={handlePrintAll}
+            className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 transition-colors flex items-center gap-2"
+            title="Cetak Laporan Bulanan (Semua Classier)"
+          >
+            <Printer size={16} />
+            Cetak Laporan
+          </button>
+
           <button
             onClick={() => { resetForm(); setIsModalOpen(true); }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold shadow-sm"
           >
-            + Add New Classier
+            + Tambah Classier
           </button>
         </div>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[800px]">
           <thead>
             <tr className="border-b bg-gray-50">
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Photo</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Foto</th>
               <th className="text-left py-3 px-4 font-semibold text-gray-700">Nama</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Deskripsi</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Motto</th>
               <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Honor/Jam</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {filteredClassiers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-gray-500">
+                <td colSpan={5} className="py-8 text-center text-gray-500">
+                  No classiers found.
                 </td>
               </tr>
             ) : (
-              filteredClassiers.map((classier) => (
+              currentItems.map((classier) => (
                 <tr key={getClassierId(classier)} className="border-b hover:bg-gray-50 transition-colors">
                   <td className="py-3 px-4">
                     <div className="flex items-center">
@@ -326,12 +357,9 @@ export default function ClassierTable() {
                   </td>
                   <td className="py-3 px-4">
                     <span className="font-medium text-gray-900">{classier.nama}</span>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Added: {new Date(classier.createdAt as string).toLocaleDateString()}
-                    </p>
                   </td>
                   <td className="py-3 px-4">
-                    <p className="text-sm text-gray-600 line-clamp-2">{classier.deskripsi}</p>
+                    <p className="text-sm text-gray-600 line-clamp-2">{classier.motto || classier.deskripsi}</p>
                   </td>
                   <td className="py-3 px-4">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${classier.status === 'active'
@@ -340,12 +368,6 @@ export default function ClassierTable() {
                       }`}>
                       {classier.status === 'active' ? 'Active' : 'Inactive'}
                     </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="font-bold text-gray-900">
-                      Rp {classier.honor_per_jam.toLocaleString('id-ID')}
-                    </span>
-                    <p className="text-xs text-gray-500 mt-1">per hour</p>
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex space-x-2">
@@ -361,7 +383,7 @@ export default function ClassierTable() {
                         className="text-yellow-500 hover:text-yellow-700 transition-colors"
                         title="Edit classier"
                       >
-                        <Pencil size={18} />
+                        <Edit size={18} />
                       </button>
                       <button
                         onClick={() => handleDeleteClick(getClassierId(classier))}
@@ -369,6 +391,13 @@ export default function ClassierTable() {
                         title="Delete classier"
                       >
                         <Trash2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => handlePrintSlip(getClassierId(classier))}
+                        className="text-gray-600 hover:text-gray-800 transition-colors"
+                        title="Cetak Slip Honor"
+                      >
+                        <Printer size={18} />
                       </button>
                     </div>
                   </td>
@@ -379,49 +408,39 @@ export default function ClassierTable() {
         </table>
       </div>
 
-      {/* Stats Summary */}
-      {classiers.length > 0 && (
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600">
-              <span className="font-medium">Showing {filteredClassiers.length} of {classiers.length} classiers</span>
-              {searchTerm && (
-                <span className="ml-2 text-blue-600">
-                  (filtered by: "{searchTerm}")
-                </span>
-              )}
-            </div>
-            <div className="flex space-x-4 text-sm">
-              <span className="flex items-center">
-                <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                Active: {classiers.filter(c => c.status === 'active').length}
-              </span>
-              <span className="flex items-center">
-                <span className="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
-                Inactive: {classiers.filter(c => c.status === 'inactive').length}
-              </span>
-              <span className="text-gray-700 font-medium">
-                Total Honor: Rp {classiers.reduce((sum, c) => sum + c.honor_per_jam, 0).toLocaleString('id-ID')}
-              </span>
-            </div>
+      {totalPages > 1 && (
+        <div className="flex justify-between items-center mt-6">
+          <p className="text-sm text-gray-500">
+            Showing <span className="font-bold">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold">{Math.min(currentPage * itemsPerPage, filteredClassiers.length)}</span> of <span className="font-bold">{filteredClassiers.length}</span> results
+          </p>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className={`flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-sm transition-colors ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#A12227] text-white hover:bg-[#A12227]/80'
+                }`}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className={`flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-sm transition-colors ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#001A3A] text-white hover:bg-[#001A3A]/80'
+                }`}
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
         </div>
       )}
 
-      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">
-                {isViewMode ? 'Detail Classier' : editingClassier ? 'Edit Classier' : 'Add New Classier'}
+                {isViewMode ? 'Detail Classier' : editingClassier ? 'Edit Classier' : 'Tambah Classier'}
               </h2>
-              <button
-                onClick={() => { setIsModalOpen(false); resetForm(); }}
-                className="text-gray-400 hover:text-gray-600 text-lg"
-              >
-                Close
-              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -436,27 +455,66 @@ export default function ClassierTable() {
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                   value={formData.nama}
                   onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                  placeholder="Enter classier name"
+                  placeholder="Masukkan Nama"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Deskripsi <span className="text-red-500">*</span>
+                  Motto <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   required
-                  rows={3}
+                  rows={2}
                   disabled={isViewMode}
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                  value={formData.deskripsi}
-                  onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })}
-                  placeholder="Describe the classier's expertise and experience"
+                  value={formData.motto}
+                  onChange={(e) => setFormData({ ...formData, motto: e.target.value })}
+                  placeholder="Masukkan Motto"
                 />
               </div>
 
+              <div className="border-t border-b py-4 my-2">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Sosial Media (Opsional)</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Instagram Profile URL</label>
+                    <input
+                      type="url"
+                      disabled={isViewMode}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:bg-gray-100 text-sm"
+                      value={formData.instagram}
+                      onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                      placeholder="https://instagram.com/username"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Facebook Profile URL</label>
+                    <input
+                      type="url"
+                      disabled={isViewMode}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:bg-gray-100 text-sm"
+                      value={formData.facebook}
+                      onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
+                      placeholder="https://facebook.com/username"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Twitter/X Profile URL</label>
+                    <input
+                      type="url"
+                      disabled={isViewMode}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100 text-sm"
+                      value={formData.twitter}
+                      onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
+                      placeholder="https://twitter.com/username"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Foto Source</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sumber Foto</label>
                 <div className="flex space-x-4 mb-2">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
@@ -468,7 +526,7 @@ export default function ClassierTable() {
                       disabled={isViewMode}
                       className="text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">Image URL</span>
+                    <span className="text-sm text-gray-700">URL</span>
                   </label>
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
@@ -480,14 +538,14 @@ export default function ClassierTable() {
                       disabled={isViewMode}
                       className="text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">Upload File</span>
+                    <span className="text-sm text-gray-700">Upload</span>
                   </label>
                 </div>
 
                 {imageMode === 'url' ? (
                   <input
-                    type="url"
-                    placeholder="https://example.com/photo.jpg"
+                    type="text"
+                    placeholder="https://example.com/photo.jpg or /images/..."
                     disabled={isViewMode}
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                     value={formData.foto}
@@ -508,22 +566,16 @@ export default function ClassierTable() {
                   />
                 )}
 
-                {/* Image Preview */}
                 {formData.foto && (
                   <div className="mt-2">
-                    <p className="text-sm font-medium text-gray-700 mb-1">Preview:</p>
+                    <p className="text-sm font-medium text-gray-700 mb-1">Pratinjau:</p>
                     <img
                       src={formData.foto}
-                      alt="Preview"
+                      alt="Pratinjau"
                       className="w-full h-48 object-cover rounded-lg border border-gray-200"
                       onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x200?text=Invalid+Image+URL'}
                     />
                   </div>
-                )}
-                {!isViewMode && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Leave empty for default avatar. Recommended: square image, 400x400px
-                  </p>
                 )}
               </div>
 
@@ -555,7 +607,6 @@ export default function ClassierTable() {
                       type="number"
                       required
                       min="0"
-                      step="10000"
                       disabled={isViewMode}
                       className="w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                       value={formData.honor_per_jam}
@@ -570,16 +621,16 @@ export default function ClassierTable() {
                 <button
                   type="button"
                   onClick={() => { setIsModalOpen(false); resetForm(); }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
                 >
-                  {isViewMode ? 'Close' : 'Cancel'}
+                  {isViewMode ? 'Tutup' : 'Batal'}
                 </button>
                 {!isViewMode && (
                   <button
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                   >
-                    {editingClassier ? 'Update Classier' : 'Create Classier'}
+                    {editingClassier ? 'Perbarui' : 'Buat'}
                   </button>
                 )}
               </div>
@@ -588,7 +639,6 @@ export default function ClassierTable() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       <DeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => { setIsDeleteModalOpen(false); setClassierToDelete(null); }}

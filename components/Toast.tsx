@@ -15,13 +15,11 @@ export default function Toast({ message, type, onClose }: ToastProps) {
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
-        // Trigger enter animation
         requestAnimationFrame(() => setIsVisible(true));
 
-        // Auto close
         const timer = setTimeout(() => {
             setIsVisible(false);
-            setTimeout(onClose, 300); // Wait for exit animation
+            setTimeout(onClose, 300);
         }, 5000);
 
         return () => clearTimeout(timer);

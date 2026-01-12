@@ -35,14 +35,14 @@ export async function POST(request: NextRequest) {
       foto = imageUrl;
     }
 
-    // Removed unused import causing lint error.
+
 
     const user = await prisma.user.create({
       data: {
         nama,
         username,
         email,
-        password, // Ideally should be hashed, but following existing pattern
+        password,
         foto
       }
     });

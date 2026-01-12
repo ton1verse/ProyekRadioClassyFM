@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { User } from '@/models/User';
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { Eye, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import DeleteModal from './DeleteModal';
 import { useToast } from '@/context/ToastContext';
 
@@ -11,11 +11,12 @@ export default function UserTable() {
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Modal States
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  // Selection States
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -31,6 +32,7 @@ export default function UserTable() {
 
   const [imageMode, setImageMode] = useState<'url' | 'file'>('url');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -58,7 +60,6 @@ export default function UserTable() {
       data.append('nama', formData.nama);
       data.append('username', formData.username);
       data.append('email', formData.email);
-      // Only append password if it's set (for create) or modified (for update)
       if (formData.password) {
         data.append('password', formData.password);
       }
@@ -165,12 +166,22 @@ export default function UserTable() {
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const currentItems = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <input
           type="text"
-          placeholder="Search users..."
+          placeholder="Cari user..."
           className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-80"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -179,22 +190,22 @@ export default function UserTable() {
           onClick={() => { resetForm(); setIsModalOpen(true); }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
         >
-          + Add New User
+          + Tambah User
         </button>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[600px]">
           <thead>
             <tr className="border-b bg-gray-50">
               <th className="text-left py-3 px-4 font-semibold text-gray-700">Nama</th>
               <th className="text-left py-3 px-4 font-semibold text-gray-700">Username</th>
               <th className="text-left py-3 px-4 font-semibold text-gray-700">Email</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Aksi</th>
             </tr>
           </thead>
           <tbody>
-            {filteredUsers.map((user) => (
+            {currentItems.map((user) => (
               <tr key={user.id} className="border-b hover:bg-gray-50">
                 <td className="py-3 px-4">
                   <div className="flex items-center">
@@ -220,7 +231,7 @@ export default function UserTable() {
                       className="text-yellow-500 hover:text-yellow-700 transition-colors"
                       title="Edit"
                     >
-                      <Pencil size={18} />
+                      <Edit size={18} />
                     </button>
                     <button
                       onClick={() => handleDeleteClick(user.id)}
@@ -237,12 +248,37 @@ export default function UserTable() {
         </table>
       </div>
 
-      {/* Form Modal (Add/Edit/View) */}
+      {totalPages > 1 && (
+        <div className="flex justify-between items-center mt-6">
+          <p className="text-sm text-gray-500">
+            Showing <span className="font-bold">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold">{Math.min(currentPage * itemsPerPage, filteredUsers.length)}</span> of <span className="font-bold">{filteredUsers.length}</span> results
+          </p>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className={`flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-sm transition-colors ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#A12227] text-white hover:bg-[#A12227]/80'
+                }`}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className={`flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-sm transition-colors ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#001A3A] text-white hover:bg-[#001A3A]/80'
+                }`}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
-              {isViewMode ? 'Detail User' : editingUser ? 'Edit User' : 'Add New User'}
+              {isViewMode ? 'Detail User' : editingUser ? 'Edit User' : 'Tambah User'}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -257,6 +293,7 @@ export default function UserTable() {
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                   value={formData.nama}
                   onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                  placeholder="Masukkan Nama"
                 />
               </div>
 
@@ -271,6 +308,7 @@ export default function UserTable() {
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  placeholder="Masukkan Username"
                 />
               </div>
 
@@ -285,10 +323,10 @@ export default function UserTable() {
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Masukkan Email"
                 />
               </div>
 
-              {/* Password field only shown in Add/Edit modes, not usually needed in View unless specifically requested, keeping consistent with Add/Edit behavior but hiding in View or disabled */}
               {!isViewMode && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -300,12 +338,13 @@ export default function UserTable() {
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Masukkan Password"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Foto Source</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sumber Foto</label>
                 <div className="flex space-x-4 mb-2">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
@@ -317,7 +356,7 @@ export default function UserTable() {
                       disabled={isViewMode}
                       className="text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">Image URL</span>
+                    <span className="text-sm text-gray-700">URL</span>
                   </label>
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
@@ -329,14 +368,14 @@ export default function UserTable() {
                       disabled={isViewMode}
                       className="text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">Upload File</span>
+                    <span className="text-sm text-gray-700">Upload</span>
                   </label>
                 </div>
 
                 {imageMode === 'url' ? (
                   <input
-                    type="url"
-                    placeholder="https://example.com/photo.jpg"
+                    type="text"
+                    placeholder="https://example.com/photo.jpg or /images/..."
                     disabled={isViewMode}
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                     value={formData.foto}
@@ -357,16 +396,17 @@ export default function UserTable() {
                   />
                 )}
 
-                {/* Image Preview */}
                 {formData.foto && (
                   <div className="mt-2">
-                    <p className="text-sm font-medium text-gray-700 mb-1">Preview:</p>
+                    <p className="text-sm font-medium text-gray-700 mb-1">Pratinjau:</p>
                     <img
                       src={formData.foto}
-                      alt="Preview"
-                      className="w-32 h-32 object-cover rounded-full border border-gray-200 mx-auto"
+                      alt="Pratinjau"
+                      onClick={() => setPreviewImage(formData.foto)}
+                      className="w-32 h-32 object-cover rounded-full border border-gray-200 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
                       onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Invalid+URL'}
                     />
+                    <p className="text-xs text-center text-gray-500 mt-1">Klik gambar untuk memperbesar</p>
                   </div>
                 )}
               </div>
@@ -375,16 +415,16 @@ export default function UserTable() {
                 <button
                   type="button"
                   onClick={() => { setIsModalOpen(false); resetForm(); }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
                 >
-                  {isViewMode ? 'Close' : 'Cancel'}
+                  {isViewMode ? 'Tutup' : 'Batal'}
                 </button>
                 {!isViewMode && (
                   <button
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
-                    {editingUser ? 'Update' : 'Create'}
+                    {editingUser ? 'Perbarui' : 'Buat'}
                   </button>
                 )}
               </div>
@@ -393,7 +433,6 @@ export default function UserTable() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       <DeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => { setIsDeleteModalOpen(false); setUserToDelete(null); }}
@@ -402,6 +441,19 @@ export default function UserTable() {
         message="Apakah Anda yakin ingin menghapus user ini? Tindakan ini tidak dapat dibatalkan."
         isDeleting={isDeleting}
       />
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 z-[60] flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setPreviewImage(null)}
+        >
+          <img
+            src={previewImage}
+            alt="Full size"
+            className="max-w-full max-h-full object-contain"
+          />
+        </div>
+      )}
     </div>
   );
 }

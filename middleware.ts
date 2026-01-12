@@ -11,18 +11,6 @@ export async function middleware(request: NextRequest) {
 
     // Check if accessing public path
     if (publicPaths.some(path => pathname.startsWith(path))) {
-        // If user is already logged in and tries to access login, redirect to dashboard
-        if (token && pathname === '/login') {
-            try {
-                const secret = new TextEncoder().encode(
-                    process.env.JWT_SECRET || 'fallback_secret_key_change_me'
-                );
-                await jwtVerify(token, secret);
-                return NextResponse.redirect(new URL('/', request.url));
-            } catch (e) {
-                // Token invalid, allow access to login
-            }
-        }
         return NextResponse.next();
     }
 

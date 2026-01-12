@@ -14,7 +14,8 @@ export async function GET(
     }
 
     const gallery = await prisma.gallery.findUnique({
-      where: { id: numericId }
+      where: { id: numericId },
+      include: { images: true }
     })
 
     if (!gallery) {
@@ -43,36 +44,50 @@ export async function PUT(
 
     const judul = formData.get('judul') as string;
     const deskripsi = formData.get('deskripsi') as string;
+    const tanggalStr = formData.get('tanggal') as string;
 
-    let gambar = undefined;
-    const imageFile = formData.get('imageFile') as File | null;
-    if (imageFile && imageFile.size > 0) {
+    const uploadedImageUrls: string[] = [];
+    const imageFiles = formData.getAll('imageFiles') as File[];
+
+    if (imageFiles && imageFiles.length > 0) {
       const { saveFile } = await import('@/lib/upload');
-      gambar = await saveFile(imageFile, 'galleries');
-    }
-    const imageUrl = formData.get('imageUrl') as string | null;
-    if (imageUrl) {
-      gambar = imageUrl;
+      for (const file of imageFiles) {
+        if (file.size > 0) {
+          const url = await saveFile(file, 'galleries');
+          uploadedImageUrls.push(url);
+        }
+      }
     }
 
     const updateData: any = {
       judul,
-      deskripsi
+      deskripsi,
     };
 
-    if (gambar) {
-      updateData.gambar = gambar;
+    if (tanggalStr) {
+      updateData.tanggal = new Date(tanggalStr);
+    }
+
+    if (uploadedImageUrls.length > 0) {
+      updateData.images = {
+        create: uploadedImageUrls.map(url => ({ url }))
+      };
     }
 
     const result = await prisma.gallery.update({
       where: { id: numericId },
-      data: updateData
+      data: updateData,
+      include: { images: true }
     })
 
     return NextResponse.json({ message: 'Gallery updated successfully', data: result })
   } catch (error) {
+    console.error('[Gallery API Error] PUT /api/galleries/[id] failed:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update gallery or gallery not found' },
+      {
+        error: error instanceof Error ? error.message : 'Failed to update gallery',
+        stack: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     )
   }

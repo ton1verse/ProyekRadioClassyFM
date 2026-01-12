@@ -7,7 +7,6 @@ export default function Header() {
   const [user, setUser] = useState<{ nama: string; foto: string | null } | null>(null);
 
   useEffect(() => {
-    // Fetch current user
     const fetchUser = async () => {
       try {
         const res = await fetch('/api/auth/me');

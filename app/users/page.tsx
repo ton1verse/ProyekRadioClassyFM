@@ -10,7 +10,7 @@ export default function UsersPage() {
         <Header />
         <main className="p-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Users Management</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Manejemen User</h2>
           </div>
           <div className="bg-white rounded-lg shadow-sm border">
             <UserTable />

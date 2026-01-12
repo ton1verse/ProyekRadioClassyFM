@@ -5,6 +5,9 @@ export interface Musik {
     foto?: string;
     deskripsi: string;
     lirik: string;
+    peringkat?: number;
+    trend?: string;
+    link?: string;
     createdAt?: string | Date;
     updatedAt?: string | Date;
 }

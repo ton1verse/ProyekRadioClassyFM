@@ -1,3 +1,5 @@
+import { EventCategory } from './EventCategory';
+
 export interface Event {
     id: number;
     judul: string;
@@ -5,6 +7,8 @@ export interface Event {
     tanggal: string | Date;
     deskripsi: string;
     poster?: string;
+    categoryId?: number;
+    category?: EventCategory;
     createdAt?: string | Date;
     updatedAt?: string | Date;
 }

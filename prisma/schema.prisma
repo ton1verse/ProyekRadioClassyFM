@@ -25,10 +25,13 @@ model User {
 model Classier {
   id            Int      @id @default(autoincrement())
   nama          String
-  deskripsi     String   @db.Text
+  motto         String?  @db.Text
   foto          String?
   status        String   @default("active")
-  honor_per_jam Float
+  honor_per_jam Float?
+  instagram     String?
+  facebook      String?
+  twitter       String?
   createdAt     DateTime @default(now())
   
   programs      Program[]
@@ -42,7 +45,7 @@ model Program {
   classierId   Int      @map("classier_id")
   nama_program String
   deskripsi    String   @db.Text
-  jadwal       DateTime
+  jadwal       String   @db.Text
   poster       String
   durasi       Int
   createdAt    DateTime @default(now())
@@ -71,10 +74,12 @@ model Podcast {
   poster      String
   link        String   @db.Text
   durasi      Int
+  tanggal     DateTime @default(now())
   createdAt   DateTime @default(now())
+  
+  listens     PodcastListen[]
 
   classier    Classier        @relation(fields: [classierId], references: [id])
-  category    PodcastCategory @relation(fields: [categoryId], references: [id])
 
   @@map("podcasts")
 }
@@ -86,6 +91,9 @@ model Musik {
   foto      String
   deskripsi String   @db.Text
   lirik     String   @db.Text
+  peringkat Int?     @map("peringkat")
+  trend     String   @default("same") // "up", "down", "same"
+  link      String?  @db.Text
   createdAt DateTime @default(now())
 
   @@map("musiks")
@@ -97,7 +105,7 @@ model NewsCategory {
   createdAt DateTime @default(now())
   beritas   Berita[]
 
-  @@map("news_categories")
+  @@map("berita_categories")
 }
 
 model Berita {
@@ -105,37 +113,57 @@ model Berita {
   categoryId  Int?      @map("category_id")
   category    NewsCategory? @relation(fields: [categoryId], references: [id])
   judul       String
-  isi         String   @db.Text
+  isi         String   @db.LongText
   gambar      String
   link        String
   penulis     String
+  tanggal     DateTime @default(now())
   createdAt   DateTime @default(now())
-
-  category    NewsCategory @relation(fields: [categoryId], references: [id])
 
   @@map("beritas")
 }
 
 model Event {
-  id        Int      @id @default(autoincrement())
-  judul     String
-  lokasi    String
-  tanggal   DateTime
-  deskripsi String   @db.Text
-  poster    String
-  createdAt DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  judul       String
+  lokasi      String
+  tanggal     DateTime
+  deskripsi   String   @db.Text
+  poster      String   @db.Text
+  categoryId  Int?     @map("category_id")
+  category    EventCategory? @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime @default(now())
 
   @@map("events")
+}
+
+model EventCategory {
+  id        Int      @id @default(autoincrement())
+  nama      String   @unique
+  createdAt DateTime @default(now())
+  events    Event[]
+
+  @@map("event_categories")
 }
 
 model Gallery {
   id        Int      @id @default(autoincrement())
   judul     String
   deskripsi String   @db.Text
-  gambar    String
+  tanggal   DateTime @default(now())
+  images    GalleryImage[]
   createdAt DateTime @default(now())
 
   @@map("galleries")
+}
+
+model GalleryImage {
+  id        Int      @id @default(autoincrement())
+  url       String
+  galleryId Int      @map("gallery_id")
+  gallery   Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+
+  @@map("gallery_images")
 }
 
 model Song {
@@ -161,4 +189,16 @@ model RadioStation {
   createdAt DateTime @default(now())
 
   @@map("radiostations")
+}
+
+model PodcastListen {
+  id        Int      @id @default(autoincrement())
+  podcastId Int      @map("podcast_id")
+  podcast   Podcast  @relation(fields: [podcastId], references: [id], onDelete: Cascade)
+  ipAddress String?  @map("ip_address") // Optional: to track unique listens per session/IP if needed later
+  createdAt DateTime @default(now())
+
+  @@map("podcast_listens")
+  @@index([createdAt])
+  @@index([podcastId])
 }

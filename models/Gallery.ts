@@ -3,6 +3,7 @@ export interface Gallery {
     judul: string;
     deskripsi: string;
     gambar?: string;
+    tanggal?: string | Date;
     createdAt?: string | Date;
     updatedAt?: string | Date;
 }

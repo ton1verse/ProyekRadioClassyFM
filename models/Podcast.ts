@@ -19,4 +19,8 @@ export interface Podcast {
     category?: PodcastCategory;
     createdAt?: string | Date;
     updatedAt?: string | Date;
+    tanggal?: string | Date;
+    _count?: {
+        listens: number;
+    };
 }

@@ -69,7 +69,7 @@ export async function PUT(
     }
 
     if (jadwal) {
-      updateData.jadwal = new Date(jadwal);
+      updateData.jadwal = jadwal;
     }
 
     if (poster) {

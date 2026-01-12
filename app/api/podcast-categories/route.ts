@@ -22,13 +22,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Category name is required' }, { status: 400 });
         }
 
-        // Check if already exists
         const existing = await prisma.podcastCategory.findUnique({
             where: { nama: nama.trim() }
         });
 
         if (existing) {
-            return NextResponse.json(existing); // Return existing instead of error
+            return NextResponse.json(existing);
         }
 
         const category = await prisma.podcastCategory.create({

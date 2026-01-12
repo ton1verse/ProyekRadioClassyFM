@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import StatsCard from '@/components/StatsCard';
-import RevenueChart from '@/components/RevenueChart';
+import ListenerChart from '@/components/ListenerChart';
 import Sidebar from '@/components/Sidebar';
 import Link from 'next/link';
-import { ArrowRight, Radio } from 'lucide-react';
+import { ArrowRight, Radio, ChevronRight } from 'lucide-react';
+import MusicRankingWidget from '@/components/MusicRankingWidget';
 
 export default function Dashboard() {
     const [stats, setStats] = useState({
@@ -75,44 +76,50 @@ export default function Dashboard() {
                         />
                     </div>
 
-                    {/* Charts & Quick Access Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div className="space-y-8">
-                            <RevenueChart />
+                    {/* Main Content Grid */}
+                    <div className="space-y-8">
+
+                        {/* Wrapper for Recent Programs & Music Ranking */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                            {/* Recent Programs */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-full flex flex-col">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-lg font-semibold text-gray-900">Program Terbaru</h2>
+                                    <Link href="/programs" className="text-[#A12227] hover:text-[#8B1D22] text-sm font-medium flex items-center">
+                                        Lihat Semua <ChevronRight size={16} className="ml-1 text-[#A12227]" />
+                                    </Link>
+                                </div>
+
+                                <div className="space-y-4 flex-1">
+                                    {recentPrograms.map((program) => (
+                                        <div key={program.id} className="flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors border border-gray-100">
+                                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mr-4 shrink-0">
+                                                {program.poster ? (
+                                                    <img src={program.poster} alt={program.nama_program} className="w-10 h-10 rounded-full object-cover" />
+                                                ) : (
+                                                    <Radio size={20} />
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-medium text-gray-900 truncate">{program.nama_program}</h3>
+                                                <p className="text-sm text-gray-500 truncate">{program.deskripsi}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {recentPrograms.length === 0 && (
+                                        <p className="text-gray-500 text-center py-4">Belum ada program.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Music Ranking Widget */}
+                            <MusicRankingWidget />
                         </div>
 
-                        {/* Quick Access Programs (Replacing Recent Activity) */}
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-fit">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-lg font-semibold text-gray-900">Program Terbaru</h2>
-                                <Link href="/programs" className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
-                                    Lihat Semua <ArrowRight size={16} className="ml-1" />
-                                </Link>
-                            </div>
-
-                            <div className="space-y-4">
-                                {recentPrograms.map((program) => (
-                                    <div key={program.id} className="flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors border border-gray-100">
-                                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mr-4 shrink-0">
-                                            {program.poster ? (
-                                                <img src={program.poster} alt={program.nama_program} className="w-10 h-10 rounded-full object-cover" />
-                                            ) : (
-                                                <Radio size={20} />
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-medium text-gray-900 truncate">{program.nama_program}</h3>
-                                            <p className="text-sm text-gray-500 truncate">{program.deskripsi}</p>
-                                        </div>
-                                        <div className="text-xs text-gray-400 whitespace-nowrap ml-2">
-                                            {new Date(program.jadwal).toLocaleDateString()}
-                                        </div>
-                                    </div>
-                                ))}
-                                {recentPrograms.length === 0 && (
-                                    <p className="text-gray-500 text-center py-4">Belum ada program.</p>
-                                )}
-                            </div>
+                        {/* Listener Chart (Full Width) */}
+                        <div className="w-full">
+                            <ListenerChart />
                         </div>
                     </div>
                 </main>

@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const categoryIdParam = searchParams.get('categoryId');
+
+    let whereClause = {};
+
+    if (categoryIdParam) {
+      const categoryId = parseInt(categoryIdParam);
+      if (isNaN(categoryId)) {
+        return NextResponse.json({ error: 'Invalid Category ID' }, { status: 400 });
+      }
+      whereClause = { categoryId };
+    }
+
     const beritas = await prisma.berita.findMany({
+      where: whereClause,
       include: { category: true },
       orderBy: { createdAt: 'desc' }
     });
@@ -21,7 +35,6 @@ export async function POST(request: NextRequest) {
     const isi = formData.get('isi') as string;
     const link = formData.get('link') as string;
     const penulis = formData.get('penulis') as string;
-    // Accept both camelCase and snake_case
     const categoryIdStr = formData.get('categoryId') as string || formData.get('category_id') as string;
 
     let gambar = '';
@@ -46,6 +59,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid Category ID format' }, { status: 400 });
     }
 
+    const tanggalStr = formData.get('tanggal') as string;
+    const tanggal = tanggalStr ? new Date(tanggalStr) : new Date();
+
     const berita = await prisma.berita.create({
       data: {
         judul,
@@ -53,7 +69,8 @@ export async function POST(request: NextRequest) {
         gambar,
         link,
         penulis,
-        categoryId
+        categoryId,
+        tanggal
       }
     });
 

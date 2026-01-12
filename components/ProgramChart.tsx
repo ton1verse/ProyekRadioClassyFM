@@ -14,7 +14,6 @@ export default function ProgramChart() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
 
   useEffect(() => {
-    // Mock data - nanti bisa diganti dengan data real dari API
     const mockPrograms: ProgramData[] = [
       { name: 'Morning Show', listeners: 1245, duration: 120, classier: 'John Doe' },
       { name: 'Jazz Night', listeners: 987, duration: 90, classier: 'Sarah Wilson' },
@@ -34,7 +33,7 @@ export default function ProgramChart() {
           <h2 className="text-lg font-semibold text-gray-900">Program Performance</h2>
           <p className="text-gray-600 text-sm">Top programs by listener count</p>
         </div>
-        <select 
+        <select
           value={timeRange}
           onChange={(e) => setTimeRange(e.target.value as 'week' | 'month' | 'year')}
           className="px-3 py-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -57,7 +56,7 @@ export default function ProgramChart() {
                 <p className="text-sm text-gray-500 truncate">{program.classier}</p>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <div className="w-32">
                 <div className="flex justify-between text-sm mb-1">
@@ -65,7 +64,7 @@ export default function ProgramChart() {
                   <span className="text-gray-400">listeners</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${(program.listeners / maxListeners) * 100}%` }}
                   ></div>

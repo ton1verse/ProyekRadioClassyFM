@@ -7,7 +7,6 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { username, password } = body;
 
-        // Simple validation
         if (!username || !password) {
             return NextResponse.json(
                 { error: 'Username and password are required' },
@@ -15,11 +14,10 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check user in database
         const user = await prisma.user.findFirst({
             where: {
                 username: username,
-                password: password // Direct comparison as requested (no hash/regist mentioned, though insecure, fits current scope)
+                password: password
             }
         });
 
@@ -30,7 +28,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Create JWT
         const secret = new TextEncoder().encode(
             process.env.JWT_SECRET || 'fallback_secret_key_change_me'
         );
@@ -41,14 +38,13 @@ export async function POST(request: Request) {
             .setExpirationTime('24h')
             .sign(secret);
 
-        // Create response with cookie
         const response = NextResponse.json({ success: true, user: { name: user.nama, username: user.username } });
 
         response.cookies.set('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 60 * 60 * 24, // 24 hours
+            maxAge: 60 * 60 * 24,
             path: '/'
         });
 

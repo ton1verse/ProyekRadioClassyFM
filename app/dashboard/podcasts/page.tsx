@@ -10,7 +10,7 @@ export default function PodcastsPage() {
                 <Header />
                 <main className="p-8">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold text-gray-900">Podcasts Management</h2>
+                        <h2 className="text-2xl font-bold text-gray-900">Manajemen Podcast</h2>
                     </div>
                     <div className="bg-white rounded-lg shadow-sm border">
                         <PodcastTable />

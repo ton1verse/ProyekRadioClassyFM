@@ -17,9 +17,13 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const nama = formData.get('nama') as string;
-    const deskripsi = formData.get('deskripsi') as string;
+    const motto = (formData.get('motto') || formData.get('deskripsi')) as string;
     const status = formData.get('status') as string || 'active';
     const honor_per_jam = Number(formData.get('honor_per_jam')) || 0;
+
+    const instagram = formData.get('instagram') as string || '';
+    const facebook = formData.get('facebook') as string || '';
+    const twitter = formData.get('twitter') as string || '';
 
     let foto = '';
     const imageFile = formData.get('imageFile') as File | null;
@@ -32,19 +36,22 @@ export async function POST(request: NextRequest) {
       foto = imageUrl;
     }
 
-    if (!nama || !deskripsi) {
+    if (!nama) {
       return NextResponse.json({
-        error: 'Missing required fields: nama, deskripsi'
+        error: 'Missing required field: nama'
       }, { status: 400 });
     }
 
     const newClassier = await prisma.classier.create({
       data: {
         nama,
-        deskripsi,
+        motto: motto || '',
         foto,
         status,
-        honor_per_jam
+        honor_per_jam,
+        instagram,
+        facebook,
+        twitter
       }
     });
 

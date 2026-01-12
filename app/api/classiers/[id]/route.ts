@@ -43,9 +43,13 @@ export async function PUT(
     const formData = await request.formData();
 
     const nama = formData.get('nama') as string;
-    const deskripsi = formData.get('deskripsi') as string;
+    const motto = (formData.get('motto') || formData.get('deskripsi')) as string;
     const status = formData.get('status') as string;
     const honor_per_jam = Number(formData.get('honor_per_jam')) || 0;
+
+    const instagram = formData.get('instagram') as string;
+    const facebook = formData.get('facebook') as string;
+    const twitter = formData.get('twitter') as string;
 
     let foto = undefined;
     const imageFile = formData.get('imageFile') as File | null;
@@ -60,13 +64,49 @@ export async function PUT(
 
     const updateData: any = {
       nama,
-      deskripsi,
+      motto: motto || '',
       status,
-      honor_per_jam
+      honor_per_jam,
+      instagram: instagram || null,
+      facebook: facebook || null,
+      twitter: twitter || null
     };
 
     if (foto) {
       updateData.foto = foto;
+    }
+
+    if (status && (status === 'nonaktif' || status === 'inactive')) {
+      const activeClassiers = await prisma.classier.findMany({
+        where: {
+          status: 'active',
+          id: { not: numericId }
+        }
+      });
+
+      if (activeClassiers.length > 0) {
+        const programsToReassign = await prisma.program.findMany({
+          where: { classierId: numericId }
+        });
+        for (const program of programsToReassign) {
+          const randomClassier = activeClassiers[Math.floor(Math.random() * activeClassiers.length)];
+          await prisma.program.update({
+            where: { id: program.id },
+            data: { classierId: randomClassier.id }
+          });
+        }
+
+        const podcastsToReassign = await prisma.podcast.findMany({
+          where: { classierId: numericId }
+        });
+        for (const podcast of podcastsToReassign) {
+          const randomClassier = activeClassiers[Math.floor(Math.random() * activeClassiers.length)];
+          await prisma.podcast.update({
+            where: { id: podcast.id },
+            data: { classierId: randomClassier.id }
+          });
+        }
+      }
     }
 
     const result = await prisma.classier.update({

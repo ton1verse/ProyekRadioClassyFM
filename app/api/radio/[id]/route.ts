@@ -14,8 +14,6 @@ export async function PUT(
     }
 
     const body = await request.json()
-
-    // Remove id fields from body if present to avoid prisma error
     if (body.id) delete body.id
     if (body._id) delete body._id
 

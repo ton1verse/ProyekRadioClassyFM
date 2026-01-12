@@ -12,6 +12,7 @@ export interface Berita {
     gambar?: string;
     link: string;
     penulis: string;
+    tanggal?: string | Date;
     category?: NewsCategory;
     createdAt?: string | Date;
     updatedAt?: string | Date;

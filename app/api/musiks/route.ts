@@ -23,6 +23,12 @@ export async function POST(request: NextRequest) {
     const penyanyi = formData.get('penyanyi') as string;
     const deskripsi = formData.get('deskripsi') as string;
     const lirik = formData.get('lirik') as string;
+    const link = formData.get('link') as string;
+    let peringkat = formData.get('peringkat') ? parseInt(formData.get('peringkat') as string) : undefined;
+    if (typeof peringkat === 'number' && isNaN(peringkat)) {
+      peringkat = undefined;
+    }
+    const trend = (formData.get('trend') as string) || 'same';
 
     let foto = '';
     const imageFile = formData.get('imageFile') as File | null;
@@ -41,7 +47,10 @@ export async function POST(request: NextRequest) {
         penyanyi: penyanyi || '',
         foto,
         deskripsi: deskripsi || '',
-        lirik: lirik || ''
+        lirik: lirik || '',
+        peringkat,
+        trend,
+        link: link || ''
       }
     });
 
